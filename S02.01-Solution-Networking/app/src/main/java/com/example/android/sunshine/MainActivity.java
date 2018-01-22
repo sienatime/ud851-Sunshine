@@ -57,11 +57,11 @@ public class MainActivity extends AppCompatActivity {
      */
     private void loadWeatherData() {
         String location = SunshinePreferences.getPreferredWeatherLocation(this);
-        new FetchWeatherTask().execute(location);
+        new FetchWeatherTask().execute(MainActivity.this, location);
     }
 
     // COMPLETED (5) Create a class that extends AsyncTask to perform network requests
-    public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
+    public static class FetchWeatherTask extends AsyncTask<, Void, String[]> {
 
         // COMPLETED (6) Override the doInBackground method to perform your network requests
         @Override
