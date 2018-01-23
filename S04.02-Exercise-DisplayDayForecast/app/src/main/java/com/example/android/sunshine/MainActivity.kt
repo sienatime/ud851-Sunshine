@@ -116,7 +116,8 @@ class MainActivity : AppCompatActivity(), ForecastAdapterOnClickHandler {
         val context = this
         val destinationClass = DetailActivity::class.java
         val intentToStartDetailActivity = Intent(context, destinationClass)
-        // TODO (1) Pass the weather to the DetailActivity
+        // Completed TODO (1) Pass the weather to the DetailActivity
+        intentToStartDetailActivity.putExtra(Intent.EXTRA_TEXT, weatherForDay)
         startActivity(intentToStartDetailActivity)
     }
 
