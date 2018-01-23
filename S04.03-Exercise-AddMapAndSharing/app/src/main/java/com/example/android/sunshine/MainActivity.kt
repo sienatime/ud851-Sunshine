@@ -212,10 +212,21 @@ class MainActivity : AppCompatActivity(), ForecastAdapterOnClickHandler {
             mForecastAdapter!!.setWeatherData(null)
             loadWeatherData()
             return true
+        } else if (id == R.id.action_map) {
+            // Completed TODO (2) Launch the map when the map menu item is clicked
+            openInMap()
         }
 
-        // TODO (2) Launch the map when the map menu item is clicked
-
         return super.onOptionsItemSelected(item)
+    }
+
+    fun openInMap() {
+        val location = SunshinePreferences.getPreferredWeatherLocation(this)
+        val geoLocation = Uri.parse("geo:0,0?q=" + location)
+
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.data = geoLocation
+
+        if (intent.resolveActivity(packageManager) != null) run { startActivity(intent) }
     }
 }
