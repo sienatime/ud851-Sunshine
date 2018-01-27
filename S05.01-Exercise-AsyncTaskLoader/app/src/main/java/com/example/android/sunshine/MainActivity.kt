@@ -20,6 +20,9 @@ import android.content.Intent
 import android.net.Uri
 import android.os.AsyncTask
 import android.os.Bundle
+import android.support.v4.app.LoaderManager
+import android.support.v4.content.AsyncTaskLoader
+import android.support.v4.content.Loader
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
@@ -38,9 +41,7 @@ import com.example.android.sunshine.utilities.OpenWeatherJsonUtils
 
 import java.net.URL
 
-// TODO (1) Implement the proper LoaderCallbacks interface and the methods of that interface
-class MainActivity : AppCompatActivity(), ForecastAdapterOnClickHandler {
-
+class MainActivity : AppCompatActivity(), ForecastAdapterOnClickHandler, LoaderManager.LoaderCallbacks<Array<String>> {
     private var mRecyclerView: RecyclerView? = null
     private var mForecastAdapter: ForecastAdapter? = null
 
@@ -94,7 +95,6 @@ class MainActivity : AppCompatActivity(), ForecastAdapterOnClickHandler {
          */
         mLoadingIndicator = findViewById(R.id.pb_loading_indicator) as ProgressBar
 
-        // TODO (7) Remove the code for the AsyncTask and initialize the AsyncTaskLoader
         /* Once all of our views are setup, we can load the weather data. */
         loadWeatherData()
     }
@@ -106,14 +106,56 @@ class MainActivity : AppCompatActivity(), ForecastAdapterOnClickHandler {
     private fun loadWeatherData() {
         showWeatherDataView()
 
-        val location = SunshinePreferences.getPreferredWeatherLocation(this)
-        FetchWeatherTask().execute(location)
+        supportLoaderManager.initLoader(WEATHER_LOADER_ID, null, this)
     }
 
-    // TODO (2) Within onCreateLoader, return a new AsyncTaskLoader that looks a lot like the existing FetchWeatherTask.
-    // TODO (3) Cache the weather data in a member variable and deliver it in onStartLoading.
+    override fun onCreateLoader(id: Int, args: Bundle?): Loader<Array<String>> {
+        return (object: AsyncTaskLoader<Array<String>>(this) {
+            private var weatherData: Array<String>? = null
 
-    // TODO (4) When the load is finished, show either the data or an error message if there is no data
+            override fun loadInBackground(): Array<String> {
+                val location = SunshinePreferences.getPreferredWeatherLocation(this@MainActivity)
+
+                val weatherRequestUrl = NetworkUtils.buildUrl(location)
+
+                try {
+                    val jsonWeatherResponse = NetworkUtils
+                            .getResponseFromHttpUrl(weatherRequestUrl)
+                    weatherData = OpenWeatherJsonUtils
+                            .getSimpleWeatherStringsFromJson(this@MainActivity, jsonWeatherResponse)
+                    return weatherData!!
+
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    return arrayOf<String>()
+                }
+            }
+
+            override fun onStartLoading() {
+                super.onStartLoading()
+                if (weatherData != null) {
+                    deliverResult(weatherData)
+                } else {
+                    mLoadingIndicator!!.visibility = View.VISIBLE
+                    forceLoad()
+                }
+            }
+        })
+    }
+
+    override fun onLoadFinished(loader: Loader<Array<String>>?, weatherData: Array<String>?) {
+        mLoadingIndicator!!.visibility = View.INVISIBLE
+        if (weatherData != null) {
+            showWeatherDataView()
+            mForecastAdapter!!.setWeatherData(weatherData)
+        } else {
+            showErrorMessage()
+        }
+    }
+
+    override fun onLoaderReset(loader: Loader<Array<String>>?) {
+        // no-op
+    }
 
     /**
      * This method is overridden by our MainActivity class in order to handle RecyclerView item
@@ -159,49 +201,6 @@ class MainActivity : AppCompatActivity(), ForecastAdapterOnClickHandler {
         mErrorMessageDisplay!!.visibility = View.VISIBLE
     }
 
-    // TODO (6) Remove any and all code from MainActivity that references FetchWeatherTask
-    inner class FetchWeatherTask : AsyncTask<String, Void, Array<String>>() {
-
-        override fun onPreExecute() {
-            super.onPreExecute()
-            mLoadingIndicator!!.visibility = View.VISIBLE
-        }
-
-        override fun doInBackground(vararg params: String): Array<String>? {
-
-            /* If there's no zip code, there's nothing to look up. */
-            if (params.size == 0) {
-                return null
-            }
-
-            val location = params[0]
-            val weatherRequestUrl = NetworkUtils.buildUrl(location)
-
-            try {
-                val jsonWeatherResponse = NetworkUtils
-                        .getResponseFromHttpUrl(weatherRequestUrl)
-
-                return OpenWeatherJsonUtils
-                        .getSimpleWeatherStringsFromJson(this@MainActivity, jsonWeatherResponse)
-
-            } catch (e: Exception) {
-                e.printStackTrace()
-                return null
-            }
-
-        }
-
-        override fun onPostExecute(weatherData: Array<String>?) {
-            mLoadingIndicator!!.visibility = View.INVISIBLE
-            if (weatherData != null) {
-                showWeatherDataView()
-                mForecastAdapter!!.setWeatherData(weatherData)
-            } else {
-                showErrorMessage()
-            }
-        }
-    }
-
     /**
      * This method uses the URI scheme for showing a location found on a
      * map. This super-handy intent is detailed in the "Common Intents"
@@ -239,10 +238,9 @@ class MainActivity : AppCompatActivity(), ForecastAdapterOnClickHandler {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         val id = item.itemId
 
-        // TODO (5) Refactor the refresh functionality to work with our AsyncTaskLoader
         if (id == R.id.action_refresh) {
             mForecastAdapter!!.setWeatherData(null)
-            loadWeatherData()
+            supportLoaderManager.restartLoader(WEATHER_LOADER_ID, null, this)
             return true
         }
 
@@ -257,5 +255,7 @@ class MainActivity : AppCompatActivity(), ForecastAdapterOnClickHandler {
     companion object {
 
         private val TAG = MainActivity::class.java.getSimpleName()
+        private val LOCATION = "LOCATION_STRING_EXTRA"
+        private val WEATHER_LOADER_ID = 965
     }
 }
