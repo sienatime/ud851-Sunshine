@@ -32,6 +32,7 @@ import android.widget.TextView;
 import com.example.android.sunshine.data.WeatherContract;
 import com.example.android.sunshine.utilities.SunshineDateUtils;
 import com.example.android.sunshine.utilities.SunshineWeatherUtils;
+import com.example.android.sunshine.viewmodels.WeatherDetailViewModel;
 
 public class DetailActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
     /*
@@ -176,40 +177,16 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
             return;
         }
 
-        long date = data.getLong(INDEX_WEATHER_DATE);
-        String dateText = SunshineDateUtils.getFriendlyDateString(this, date, true);
+        WeatherDetailViewModel viewModel = new WeatherDetailViewModel(this, data);
 
-        textViewDate.setText(dateText);
-
-        int weatherId = data.getInt(INDEX_WEATHER_CONDITION_ID);
-        String description = SunshineWeatherUtils.getStringForWeatherCondition(this, weatherId);
-
-        textViewDescription.setText(description);
-        double highInCelsius = data.getDouble(INDEX_WEATHER_MAX_TEMP);
-        String highString = SunshineWeatherUtils.formatTemperature(this, highInCelsius);
-
-        textViewHighTemp.setText(highString);
-        double lowInCelsius = data.getDouble(INDEX_WEATHER_MIN_TEMP);
-        String lowString = SunshineWeatherUtils.formatTemperature(this, lowInCelsius);
-        textViewLowTemp.setText(lowString);
-
-        float humidity = data.getFloat(INDEX_WEATHER_HUMIDITY);
-        String humidityString = getString(R.string.format_humidity, humidity);
-
-        textViewHumidity.setText(humidityString);
-
-        float windSpeed = data.getFloat(INDEX_WEATHER_WIND_SPEED);
-        float windDirection = data.getFloat(INDEX_WEATHER_DEGREES);
-        String windString = SunshineWeatherUtils.getFormattedWind(this, windSpeed, windDirection);
-
-        textViewWind.setText(windString);
-
-        float pressure = data.getFloat(INDEX_WEATHER_PRESSURE);
-
-        String pressureString = getString(R.string.format_pressure, pressure);
-        textViewPressure.setText(pressureString);
-        mForecastSummary = String.format("%s - %s - %s/%s",
-                dateText, description, highString, lowString);
+        textViewDate.setText(viewModel.getDate());
+        textViewDescription.setText(viewModel.getDescription());
+        textViewHighTemp.setText(viewModel.getHighTemp());
+        textViewLowTemp.setText(viewModel.getLowTemp());
+        textViewHumidity.setText(viewModel.getHumidity());
+        textViewWind.setText(viewModel.getWind());
+        textViewPressure.setText(viewModel.getPressure());
+        mForecastSummary = viewModel.getSummary();
     }
 
     @Override
